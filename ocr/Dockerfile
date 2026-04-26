@@ -24,3 +24,6 @@ ENV HF_HOME=/root/.cache/huggingface
 ENV TRANSFORMERS_CACHE=/root/.cache/huggingface
 
 EXPOSE 8001
+
+# Start the OCR HTTP server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--log-level", "info"]

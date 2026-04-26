@@ -40,3 +40,8 @@ minio==7.2.9
 redis==5.1.1
 structlog==24.4.0
 httpx==0.27.2
+# HTTP Server (for OCR service API)
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+pydantic==2.9.2
