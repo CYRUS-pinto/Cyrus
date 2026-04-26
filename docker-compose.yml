@@ -1,0 +1,205 @@
+# =============================================================
+# CYRUS — Full Stack Docker Compose
+# Run: docker compose up --build
+# Services: FastAPI, Celery, OCR Worker, Redis, PostgreSQL, MinIO, Nginx
+# =============================================================
+
+version: "3.9"
+
+services:
+
+  # ─────────────────────────────────────────
+  # POSTGRES — Primary Database
+  # ─────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: cyrus_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cyrus}
+      POSTGRES_USER: ${POSTGRES_USER:-cyrus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cyruspassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cyrus}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # REDIS — Task Queue + Cache
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cyrus_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # MINIO — Object Storage (S3-compatible)
+  # ─────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: cyrus_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # MinIO Console (web UI)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # ─────────────────────────────────────────
+  # BACKEND — FastAPI Application
+  # ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cyrus_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cyrus}:${POSTGRES_PASSWORD:-cyruspassword}@db:5432/${POSTGRES_DB:-cyrus}
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-cyrus-files}
+      MINIO_SECURE: "false"
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  # ─────────────────────────────────────────
+  # CELERY WORKER — Background Task Processor
+  # ─────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cyrus_worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cyrus}:${POSTGRES_PASSWORD:-cyruspassword}@db:5432/${POSTGRES_DB:-cyrus}
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-cyrus-files}
+      MINIO_SECURE: "false"
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    volumes:
+      - ./backend:/app
+      - ./ocr:/ocr
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A celery_worker worker --loglevel=info --concurrency=2 -Q ocr,grading,feedback,export,default
+
+  # ─────────────────────────────────────────
+  # OCR SERVICE — Heavy AI processing
+  # ─────────────────────────────────────────
+  ocr_service:
+    build:
+      context: ./ocr
+      dockerfile: Dockerfile
+    container_name: cyrus_ocr
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-cyrus-files}
+      MINIO_SECURE: "false"
+      OCR_MODE: ${OCR_MODE:-ensemble}
+    volumes:
+      - ./ocr:/app
+      - ocr_model_cache:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+    # GPU support (uncomment if NVIDIA GPU available)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ─────────────────────────────────────────
+  # CELERY FLOWER — Task Monitor (dev only)
+  # ─────────────────────────────────────────
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cyrus_flower
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    command: celery -A celery_worker flower --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - worker
+
+  # ─────────────────────────────────────────
+  # NGINX — Reverse Proxy
+  # ─────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: cyrus_nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  ocr_model_cache:

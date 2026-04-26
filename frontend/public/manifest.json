@@ -1,0 +1,37 @@
+{
+  "name": "Cyrus",
+  "short_name": "Cyrus",
+  "description": "AI-powered teacher grading platform",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Upload Papers",
+      "url": "/upload",
+      "description": "Scan and upload exam papers"
+    },
+    {
+      "name": "Grade",
+      "url": "/grade",
+      "description": "Review AI grades"
+    }
+  ],
+  "categories": ["education", "productivity"]
+}

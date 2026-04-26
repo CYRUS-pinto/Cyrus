@@ -1,0 +1,67 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+venv/
+.venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Docker volumes (local dev)
+postgres_data/
+redis_data/
+minio_data/
+
+# Models / large files
+*.ckpt
+*.safetensors
+*.bin
+*.pt
+*.pth
+ocr_model_cache/
+fine_tuned_models/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Alembic
+# (keep versions tracked — don't gitignore them)
+
+# Secrets
+*.pem
+*.key
+service_account.json

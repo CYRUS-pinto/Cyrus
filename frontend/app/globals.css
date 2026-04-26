@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Cyrus Design Tokens */
+  --cyrus-bg: #0f0f1a;
+  --cyrus-surface: #1a1a2e;
+  --cyrus-border: #2a2a45;
+  --cyrus-accent: #7c3aed;       /* Violet — primary brand */
+  --cyrus-accent-glow: #7c3aed33;
+  --cyrus-success: #10b981;
+  --cyrus-warning: #f59e0b;
+  --cyrus-danger: #ef4444;
+  --cyrus-text: #e2e8f0;
+  --cyrus-muted: #64748b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--cyrus-bg);
+  color: var(--cyrus-text);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Scrollbar — dark themed */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--cyrus-surface); }
+::-webkit-scrollbar-thumb { background: var(--cyrus-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyrus-accent); }
+
+/* Glassmorphism card */
+.glass {
+  background: rgba(26, 26, 46, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--cyrus-border);
+  border-radius: 12px;
+}
+
+/* Glow effect on accent elements */
+.glow {
+  box-shadow: 0 0 20px var(--cyrus-accent-glow);
+}
+
+/* Animated gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #7c3aed, #a78bfa, #c4b5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Status badge colours */
+.badge-uploading   { background: #1e3a5f; color: #60a5fa; }
+.badge-processing  { background: #422006; color: #fbbf24; }
+.badge-completed   { background: #064e3b; color: #34d399; }
+.badge-review      { background: #450a0a; color: #f87171; }
+.badge-draft       { background: #1e1e3f; color: #a5b4fc; }
+
+/* Page transition */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: fadeIn 0.25s ease forwards; }
+
+/* Pulse animation for syncing indicator */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.sync-pulse { animation: pulse-dot 1.5s ease-in-out infinite; }

@@ -1,0 +1,6 @@
+import { redirect } from "next/navigation";
+
+// Root page — redirect to the teacher dashboard
+export default function HomePage() {
+  redirect("/dashboard");
+}
