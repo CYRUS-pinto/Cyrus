@@ -26,8 +26,7 @@ celery_app = Celery(
     include=[
         "app.tasks.ocr_tasks",
         "app.tasks.grade_tasks",
-        "app.tasks.feedback_tasks",
-        "app.tasks.export_tasks",
+        "app.tasks.finetune_tasks",
     ]
 )
 
@@ -48,8 +47,7 @@ celery_app.conf.update(
     task_routes={
         "app.tasks.ocr_tasks.*": {"queue": "ocr"},
         "app.tasks.grade_tasks.*": {"queue": "grading"},
-        "app.tasks.feedback_tasks.*": {"queue": "feedback"},
-        "app.tasks.export_tasks.*": {"queue": "export"},
+        "app.tasks.finetune_tasks.*": {"queue": "finetune"},
     },
 
     # Retry failed tasks up to 3 times (the 3-strike rule)

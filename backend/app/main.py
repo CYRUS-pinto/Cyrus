@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.database import create_tables
-from app.api import classes, exams, upload, grade, share, export, sync, health, adaptive, answer_keys
+from app.api import classes, exams, upload, grade, share, export, sync, health, adaptive, answer_keys, feedback
 
 log = structlog.get_logger()
 settings = get_settings()
